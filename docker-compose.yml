@@ -1,0 +1,87 @@
+version: '3.8'
+
+services:
+  # ==========================================================================
+  # Infrastructure
+  # ==========================================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: cloudsweep-postgres
+    environment:
+      POSTGRES_USER: cloudsweep
+      POSTGRES_PASSWORD: cloudsweep_secret
+      POSTGRES_DB: cloudsweep
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cloudsweep"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: cloudsweep-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ==========================================================================
+  # Application (optional - for production-like testing)
+  # ==========================================================================
+  api:
+    build:
+      context: .
+      target: api
+    container_name: cloudsweep-api
+    ports:
+      - "8080:8080"
+    environment:
+      - SERVER_PORT=8080
+      - SERVER_ENV=development
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=cloudsweep
+      - DB_PASSWORD=cloudsweep_secret
+      - DB_NAME=cloudsweep
+      - REDIS_ADDR=redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    profiles:
+      - full
+
+  worker:
+    build:
+      context: .
+      target: worker
+    container_name: cloudsweep-worker
+    environment:
+      - SERVER_ENV=development
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=cloudsweep
+      - DB_PASSWORD=cloudsweep_secret
+      - DB_NAME=cloudsweep
+      - REDIS_ADDR=redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    profiles:
+      - full
+
+volumes:
+  postgres_data:
+  redis_data:
