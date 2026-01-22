@@ -18,16 +18,68 @@ func NewDashboardHandler(db *gorm.DB) *DashboardHandler {
 	return &DashboardHandler{db: db}
 }
 
-// Summary returns dashboard summary statistics
+// SummaryStats represents dashboard summary statistics
+type SummaryStats struct {
+	TotalResources   int64   `json:"total_resources" example:"500"`
+	UnusedResources  int64   `json:"unused_resources" example:"75"`
+	TotalCost        float64 `json:"total_monthly_cost" example:"15000.00"`
+	PotentialSavings float64 `json:"potential_monthly_savings" example:"2500.00"`
+	TotalCarbon      float64 `json:"total_carbon_kg" example:"1200.50"`
+	CarbonSavings    float64 `json:"potential_carbon_savings_kg" example:"180.25"`
+}
+
+// ProviderSavings represents savings by provider
+type ProviderSavings struct {
+	Provider string  `json:"provider" example:"aws"`
+	Cost     float64 `json:"monthly_cost" example:"1500.00"`
+	Savings  float64 `json:"potential_savings" example:"250.00"`
+	Count    int64   `json:"unused_count" example:"25"`
+}
+
+// TypeSavings represents savings by resource type
+type TypeSavings struct {
+	Type  string  `json:"resource_type" example:"ec2_instance"`
+	Cost  float64 `json:"monthly_cost" example:"800.00"`
+	Count int64   `json:"unused_count" example:"10"`
+}
+
+// SavingsResponse represents savings breakdown response
+type SavingsResponse struct {
+	ByProvider     []ProviderSavings `json:"by_provider"`
+	ByResourceType []TypeSavings     `json:"by_resource_type"`
+}
+
+// ProviderCarbon represents carbon by provider
+type ProviderCarbon struct {
+	Provider string  `json:"provider" example:"aws"`
+	Carbon   float64 `json:"carbon_kg" example:"450.25"`
+	Savings  float64 `json:"potential_savings_kg" example:"75.50"`
+}
+
+// RegionCarbon represents carbon by region
+type RegionCarbon struct {
+	Region string  `json:"region" example:"us-east-1"`
+	Carbon float64 `json:"carbon_kg" example:"250.00"`
+}
+
+// CarbonResponse represents carbon breakdown response
+type CarbonResponse struct {
+	ByProvider []ProviderCarbon `json:"by_provider"`
+	ByRegion   []RegionCarbon   `json:"by_region"`
+}
+
+// Summary godoc
+//
+//	@Summary		Dashboard summary
+//	@Description	Get dashboard summary statistics including total resources, unused resources, costs and carbon footprint
+//	@Tags			Dashboard
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{object}	map[string]SummaryStats
+//	@Failure		500	{object}	ErrorResponse
+//	@Router			/dashboard/summary [get]
 func (h *DashboardHandler) Summary(c *gin.Context) {
-	var stats struct {
-		TotalResources  int64   `json:"total_resources"`
-		UnusedResources int64   `json:"unused_resources"`
-		TotalCost       float64 `json:"total_monthly_cost"`
-		PotentialSavings float64 `json:"potential_monthly_savings"`
-		TotalCarbon     float64 `json:"total_carbon_kg"`
-		CarbonSavings   float64 `json:"potential_carbon_savings_kg"`
-	}
+	var stats SummaryStats
 
 	// Total resources
 	h.db.Model(&model.Resource{}).Where("status != ?", "deleted").Count(&stats.TotalResources)
@@ -62,15 +114,19 @@ func (h *DashboardHandler) Summary(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": stats})
 }
 
-// Savings returns savings breakdown by provider and resource type
+// Savings godoc
+//
+//	@Summary		Savings breakdown
+//	@Description	Get potential savings breakdown by provider and resource type
+//	@Tags			Dashboard
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{object}	SavingsResponse
+//	@Failure		500	{object}	ErrorResponse
+//	@Router			/dashboard/savings [get]
 func (h *DashboardHandler) Savings(c *gin.Context) {
 	// By provider
-	var byProvider []struct {
-		Provider string  `json:"provider"`
-		Cost     float64 `json:"monthly_cost"`
-		Savings  float64 `json:"potential_savings"`
-		Count    int64   `json:"unused_count"`
-	}
+	var byProvider []ProviderSavings
 
 	h.db.Model(&model.Resource{}).
 		Select("provider, SUM(monthly_cost) as cost, COUNT(*) as count").
@@ -79,11 +135,7 @@ func (h *DashboardHandler) Savings(c *gin.Context) {
 		Scan(&byProvider)
 
 	// By resource type
-	var byType []struct {
-		Type    string  `json:"resource_type"`
-		Cost    float64 `json:"monthly_cost"`
-		Count   int64   `json:"unused_count"`
-	}
+	var byType []TypeSavings
 
 	h.db.Model(&model.Resource{}).
 		Select("type, SUM(monthly_cost) as cost, COUNT(*) as count").
@@ -93,20 +145,25 @@ func (h *DashboardHandler) Savings(c *gin.Context) {
 		Limit(10).
 		Scan(&byType)
 
-	c.JSON(http.StatusOK, gin.H{
-		"by_provider":      byProvider,
-		"by_resource_type": byType,
+	c.JSON(http.StatusOK, SavingsResponse{
+		ByProvider:     byProvider,
+		ByResourceType: byType,
 	})
 }
 
-// Carbon returns carbon footprint breakdown
+// Carbon godoc
+//
+//	@Summary		Carbon footprint breakdown
+//	@Description	Get carbon footprint breakdown by provider and region
+//	@Tags			Dashboard
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{object}	CarbonResponse
+//	@Failure		500	{object}	ErrorResponse
+//	@Router			/dashboard/carbon [get]
 func (h *DashboardHandler) Carbon(c *gin.Context) {
 	// By provider
-	var byProvider []struct {
-		Provider string  `json:"provider"`
-		Carbon   float64 `json:"carbon_kg"`
-		Savings  float64 `json:"potential_savings_kg"`
-	}
+	var byProvider []ProviderCarbon
 
 	h.db.Model(&model.Resource{}).
 		Select("provider, SUM(carbon_footprint) as carbon").
@@ -115,10 +172,7 @@ func (h *DashboardHandler) Carbon(c *gin.Context) {
 		Scan(&byProvider)
 
 	// By region
-	var byRegion []struct {
-		Region string  `json:"region"`
-		Carbon float64 `json:"carbon_kg"`
-	}
+	var byRegion []RegionCarbon
 
 	h.db.Model(&model.Resource{}).
 		Select("region, SUM(carbon_footprint) as carbon").
@@ -128,8 +182,8 @@ func (h *DashboardHandler) Carbon(c *gin.Context) {
 		Limit(10).
 		Scan(&byRegion)
 
-	c.JSON(http.StatusOK, gin.H{
-		"by_provider": byProvider,
-		"by_region":   byRegion,
+	c.JSON(http.StatusOK, CarbonResponse{
+		ByProvider: byProvider,
+		ByRegion:   byRegion,
 	})
 }

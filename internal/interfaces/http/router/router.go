@@ -6,7 +6,11 @@ import (
 	"github.com/cloudsweep/cloudsweep/internal/interfaces/http/middleware"
 	"github.com/gin-gonic/gin"
 	"github.com/hibiken/asynq"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	"gorm.io/gorm"
+
+	_ "github.com/cloudsweep/cloudsweep/docs" // Swagger docs
 )
 
 // NewRouter creates and configures the Gin router
@@ -28,6 +32,9 @@ func NewRouter(db *gorm.DB, queueClient *asynq.Client, cfg *config.Config) *gin.
 	healthHandler := handler.NewHealthHandler(db)
 	r.GET("/health", healthHandler.Check)
 	r.GET("/ready", healthHandler.Ready)
+
+	// Swagger documentation
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// API v1
 	v1 := r.Group("/api/v1")

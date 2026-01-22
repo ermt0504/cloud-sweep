@@ -26,19 +26,35 @@ func NewResourceHandler(db *gorm.DB, queueClient *asynq.Client) *ResourceHandler
 
 // ListResourcesRequest represents query parameters for listing resources
 type ListResourcesRequest struct {
-	Provider string `form:"provider"`
-	Type     string `form:"type"`
-	Status   string `form:"status"`
-	Region   string `form:"region"`
-	Limit    int    `form:"limit,default=50"`
-	Offset   int    `form:"offset,default=0"`
+	Provider string `form:"provider" example:"aws"`
+	Type     string `form:"type" example:"ec2_instance"`
+	Status   string `form:"status" example:"unused"`
+	Region   string `form:"region" example:"us-east-1"`
+	Limit    int    `form:"limit,default=50" example:"50"`
+	Offset   int    `form:"offset,default=0" example:"0"`
 }
 
-// List returns a list of resources
+// List godoc
+//
+//	@Summary		List resources
+//	@Description	Get a paginated list of cloud resources with optional filters
+//	@Tags			Resources
+//	@Accept			json
+//	@Produce		json
+//	@Param			provider	query		string	false	"Filter by cloud provider"	Enums(aws, azure, gcp)
+//	@Param			type		query		string	false	"Filter by resource type"
+//	@Param			status		query		string	false	"Filter by status"	Enums(active, unused, deleted, excluded)
+//	@Param			region		query		string	false	"Filter by region"
+//	@Param			limit		query		int		false	"Number of items per page"	default(50)
+//	@Param			offset		query		int		false	"Number of items to skip"	default(0)
+//	@Success		200			{object}	PaginatedResponse{data=[]ResourceDTO}
+//	@Failure		400			{object}	ErrorResponse
+//	@Failure		500			{object}	ErrorResponse
+//	@Router			/resources [get]
 func (h *ResourceHandler) List(c *gin.Context) {
 	var req ListResourcesRequest
 	if err := c.ShouldBindQuery(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
 		return
 	}
 
@@ -65,58 +81,82 @@ func (h *ResourceHandler) List(c *gin.Context) {
 	// Fetch resources
 	var resources []model.Resource
 	if err := query.Limit(req.Limit).Offset(req.Offset).Order("created_at DESC").Find(&resources).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch resources"})
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "failed to fetch resources"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"data":   resources,
-		"total":  total,
-		"limit":  req.Limit,
-		"offset": req.Offset,
+	c.JSON(http.StatusOK, PaginatedResponse{
+		Data:   resources,
+		Total:  total,
+		Limit:  req.Limit,
+		Offset: req.Offset,
 	})
 }
 
-// Get returns a single resource by ID
+// Get godoc
+//
+//	@Summary		Get resource by ID
+//	@Description	Get a single cloud resource by its ID
+//	@Tags			Resources
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string	true	"Resource ID"	format(uuid)
+//	@Success		200	{object}	map[string]ResourceDTO
+//	@Failure		400	{object}	ErrorResponse
+//	@Failure		404	{object}	ErrorResponse
+//	@Failure		500	{object}	ErrorResponse
+//	@Router			/resources/{id} [get]
 func (h *ResourceHandler) Get(c *gin.Context) {
 	idParam := c.Param("id")
 	id, err := uuid.Parse(idParam)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid resource ID"})
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "invalid resource ID"})
 		return
 	}
 
 	var resource model.Resource
 	if err := h.db.First(&resource, "id = ?", id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			c.JSON(http.StatusNotFound, gin.H{"error": "resource not found"})
+			c.JSON(http.StatusNotFound, ErrorResponse{Error: "resource not found"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch resource"})
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "failed to fetch resource"})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"data": resource})
 }
 
-// Delete deletes a resource (marks as deleted)
+// Delete godoc
+//
+//	@Summary		Delete resource
+//	@Description	Mark a resource as deleted
+//	@Tags			Resources
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string	true	"Resource ID"	format(uuid)
+//	@Success		200	{object}	MessageResponse
+//	@Failure		400	{object}	ErrorResponse
+//	@Failure		404	{object}	ErrorResponse
+//	@Failure		500	{object}	ErrorResponse
+//	@Router			/resources/{id} [delete]
 func (h *ResourceHandler) Delete(c *gin.Context) {
 	idParam := c.Param("id")
 	id, err := uuid.Parse(idParam)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid resource ID"})
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "invalid resource ID"})
 		return
 	}
 
 	result := h.db.Model(&model.Resource{}).Where("id = ?", id).Update("status", "deleted")
 	if result.Error != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete resource"})
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "failed to delete resource"})
 		return
 	}
 	if result.RowsAffected == 0 {
-		c.JSON(http.StatusNotFound, gin.H{"error": "resource not found"})
+		c.JSON(http.StatusNotFound, ErrorResponse{Error: "resource not found"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "resource deleted"})
+	c.JSON(http.StatusOK, MessageResponse{Message: "resource deleted"})
 }

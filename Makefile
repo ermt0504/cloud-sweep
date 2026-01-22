@@ -1,4 +1,4 @@
-.PHONY: build build-api build-worker run-api run-worker test lint clean deps docker-up docker-down docker-build migrate
+.PHONY: build build-api build-worker run-api run-worker test lint clean deps docker-up docker-down docker-build migrate swagger
 
 # Variables
 BINARY_API=bin/api
@@ -62,6 +62,16 @@ migrate:
 migrate-down:
 	$(GO) run ./cmd/migrate down
 
+# Swagger
+swagger:
+	swag init -g docs/swagger.go -o docs --parseDependency --parseInternal
+
+swagger-install:
+	$(GO) install github.com/swaggo/swag/cmd/swag@latest
+
+swagger-fmt:
+	swag fmt
+
 # Development
 dev-api:
 	air -c .air.api.toml
@@ -72,12 +82,14 @@ dev-worker:
 # Help
 help:
 	@echo "Commandes disponibles:"
-	@echo "  make build        - Compile tous les binaires"
-	@echo "  make run-api      - Lance l'API"
-	@echo "  make run-worker   - Lance le worker"
-	@echo "  make test         - Execute les tests"
-	@echo "  make lint         - Analyse statique"
-	@echo "  make deps         - Telecharge les dependances"
-	@echo "  make docker-up    - Demarre les conteneurs"
-	@echo "  make docker-down  - Arrete les conteneurs"
-	@echo "  make clean        - Nettoie les artefacts"
+	@echo "  make build          - Compile tous les binaires"
+	@echo "  make run-api        - Lance l'API"
+	@echo "  make run-worker     - Lance le worker"
+	@echo "  make test           - Execute les tests"
+	@echo "  make lint           - Analyse statique"
+	@echo "  make deps           - Telecharge les dependances"
+	@echo "  make docker-up      - Demarre les conteneurs"
+	@echo "  make docker-down    - Arrete les conteneurs"
+	@echo "  make clean          - Nettoie les artefacts"
+	@echo "  make swagger        - Genere la documentation Swagger"
+	@echo "  make swagger-install - Installe swag CLI"

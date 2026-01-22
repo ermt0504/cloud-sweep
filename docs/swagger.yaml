@@ -1,0 +1,1145 @@
+basePath: /api/v1
+definitions:
+  handler.CarbonResponse:
+    properties:
+      by_provider:
+        items:
+          $ref: '#/definitions/handler.ProviderCarbon'
+        type: array
+      by_region:
+        items:
+          $ref: '#/definitions/handler.RegionCarbon'
+        type: array
+    type: object
+  handler.CleanupPreviewDTO:
+    properties:
+      action:
+        example: delete
+        type: string
+      count:
+        example: 5
+        type: integer
+      estimated_carbon_savings:
+        example: 35.5
+        type: number
+      estimated_monthly_savings:
+        example: 250
+        type: number
+      resources:
+        items:
+          $ref: '#/definitions/handler.ResourceDTO'
+        type: array
+    type: object
+  handler.CreatePolicyRequest:
+    properties:
+      actions:
+        example:
+        - notify
+        - delete
+        items:
+          type: string
+        minItems: 1
+        type: array
+      conditions:
+        additionalProperties: {}
+        type: object
+      description:
+        example: Automatically delete EBS volumes unused for 30 days
+        type: string
+      name:
+        example: Delete unused EBS volumes
+        type: string
+      organization_id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      provider:
+        enum:
+        - aws
+        - azure
+        - gcp
+        example: aws
+        type: string
+      resource_types:
+        example:
+        - ebs_volume
+        - ebs_snapshot
+        items:
+          type: string
+        type: array
+      schedule:
+        example: 0 0 * * *
+        type: string
+    required:
+    - actions
+    - name
+    - organization_id
+    - provider
+    type: object
+  handler.CreateScanRequest:
+    properties:
+      organization_id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      provider:
+        enum:
+        - aws
+        - azure
+        - gcp
+        example: aws
+        type: string
+      regions:
+        example:
+        - us-east-1
+        - eu-west-1
+        items:
+          type: string
+        minItems: 1
+        type: array
+      resource_types:
+        example:
+        - ec2_instance
+        - ebs_volume
+        items:
+          type: string
+        type: array
+    required:
+    - organization_id
+    - provider
+    - regions
+    type: object
+  handler.CreateScanResponse:
+    properties:
+      data:
+        $ref: '#/definitions/handler.ScanDTO'
+      message:
+        example: scan created and queued for processing
+        type: string
+    type: object
+  handler.ErrorResponse:
+    properties:
+      error:
+        example: invalid request
+        type: string
+    type: object
+  handler.ExecuteCleanupRequest:
+    properties:
+      action:
+        enum:
+        - delete
+        - stop
+        - tag
+        - notify
+        example: delete
+        type: string
+      dry_run:
+        example: false
+        type: boolean
+      organization_id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      resource_ids:
+        example:
+        - 550e8400-e29b-41d4-a716-446655440001
+        - 550e8400-e29b-41d4-a716-446655440002
+        items:
+          type: string
+        minItems: 1
+        type: array
+    required:
+    - action
+    - organization_id
+    - resource_ids
+    type: object
+  handler.ExecuteCleanupResponse:
+    properties:
+      dry_run:
+        example: false
+        type: boolean
+      message:
+        example: cleanup task queued
+        type: string
+      task_id:
+        example: task_12345
+        type: string
+    type: object
+  handler.HealthResponse:
+    properties:
+      service:
+        example: cloudsweep-api
+        type: string
+      status:
+        example: ok
+        type: string
+    type: object
+  handler.MessageResponse:
+    properties:
+      message:
+        example: operation successful
+        type: string
+    type: object
+  handler.PaginatedResponse:
+    properties:
+      data: {}
+      limit:
+        example: 50
+        type: integer
+      offset:
+        example: 0
+        type: integer
+      total:
+        example: 100
+        type: integer
+    type: object
+  handler.PolicyDTO:
+    properties:
+      actions:
+        example:
+        - notify
+        - delete
+        items:
+          enum:
+          - notify
+          - tag
+          - stop
+          - delete
+          type: string
+        type: array
+      conditions:
+        additionalProperties: {}
+        type: object
+      created_at:
+        type: string
+      description:
+        example: Automatically delete EBS volumes unused for 30 days
+        type: string
+      id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      is_enabled:
+        example: true
+        type: boolean
+      name:
+        example: Delete unused EBS volumes
+        type: string
+      organization_id:
+        example: 550e8400-e29b-41d4-a716-446655440001
+        type: string
+      provider:
+        enum:
+        - aws
+        - azure
+        - gcp
+        example: aws
+        type: string
+      resource_types:
+        example:
+        - ebs_volume
+        items:
+          type: string
+        type: array
+      schedule:
+        example: 0 0 * * *
+        type: string
+      updated_at:
+        type: string
+    type: object
+  handler.ProviderCarbon:
+    properties:
+      carbon_kg:
+        example: 450.25
+        type: number
+      potential_savings_kg:
+        example: 75.5
+        type: number
+      provider:
+        example: aws
+        type: string
+    type: object
+  handler.ProviderSavings:
+    properties:
+      monthly_cost:
+        example: 1500
+        type: number
+      potential_savings:
+        example: 250
+        type: number
+      provider:
+        example: aws
+        type: string
+      unused_count:
+        example: 25
+        type: integer
+    type: object
+  handler.ReadyResponse:
+    properties:
+      checks:
+        additionalProperties:
+          type: string
+        type: object
+      status:
+        example: ready
+        type: string
+    type: object
+  handler.RegionCarbon:
+    properties:
+      carbon_kg:
+        example: 250
+        type: number
+      region:
+        example: us-east-1
+        type: string
+    type: object
+  handler.ResourceDTO:
+    properties:
+      carbon_footprint_kg:
+        example: 12.5
+        type: number
+      created_at:
+        type: string
+      id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      last_seen_at:
+        type: string
+      monthly_cost:
+        example: 45.5
+        type: number
+      name:
+        example: my-instance
+        type: string
+      organization_id:
+        example: 550e8400-e29b-41d4-a716-446655440001
+        type: string
+      provider:
+        enum:
+        - aws
+        - azure
+        - gcp
+        example: aws
+        type: string
+      region:
+        example: us-east-1
+        type: string
+      resource_id:
+        example: i-1234567890abcdef0
+        type: string
+      status:
+        enum:
+        - active
+        - unused
+        - deleted
+        - excluded
+        example: unused
+        type: string
+      tags:
+        additionalProperties:
+          type: string
+        type: object
+      type:
+        example: ec2_instance
+        type: string
+      updated_at:
+        type: string
+    type: object
+  handler.SavingsResponse:
+    properties:
+      by_provider:
+        items:
+          $ref: '#/definitions/handler.ProviderSavings'
+        type: array
+      by_resource_type:
+        items:
+          $ref: '#/definitions/handler.TypeSavings'
+        type: array
+    type: object
+  handler.ScanDTO:
+    properties:
+      carbon_savings_kg:
+        example: 45.5
+        type: number
+      completed_at:
+        type: string
+      created_at:
+        type: string
+      error_message:
+        type: string
+      estimated_savings:
+        example: 1250
+        type: number
+      id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+      organization_id:
+        example: 550e8400-e29b-41d4-a716-446655440001
+        type: string
+      provider:
+        enum:
+        - aws
+        - azure
+        - gcp
+        example: aws
+        type: string
+      regions:
+        example:
+        - us-east-1
+        - eu-west-1
+        items:
+          type: string
+        type: array
+      resource_types:
+        example:
+        - ec2_instance
+        - ebs_volume
+        items:
+          type: string
+        type: array
+      resources_found:
+        example: 150
+        type: integer
+      started_at:
+        type: string
+      status:
+        enum:
+        - pending
+        - running
+        - completed
+        - failed
+        - cancelled
+        example: completed
+        type: string
+      unused_found:
+        example: 23
+        type: integer
+      updated_at:
+        type: string
+    type: object
+  handler.SummaryStats:
+    properties:
+      potential_carbon_savings_kg:
+        example: 180.25
+        type: number
+      potential_monthly_savings:
+        example: 2500
+        type: number
+      total_carbon_kg:
+        example: 1200.5
+        type: number
+      total_monthly_cost:
+        example: 15000
+        type: number
+      total_resources:
+        example: 500
+        type: integer
+      unused_resources:
+        example: 75
+        type: integer
+    type: object
+  handler.TypeSavings:
+    properties:
+      monthly_cost:
+        example: 800
+        type: number
+      resource_type:
+        example: ec2_instance
+        type: string
+      unused_count:
+        example: 10
+        type: integer
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@cloudsweep.io
+    name: CloudSweep Support
+    url: https://github.com/ermt0504/cloud-sweep
+  description: API FinOps/GreenOps pour automatiser le nettoyage des ressources cloud
+    inutilisees
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: CloudSweep API
+  version: "1.0"
+paths:
+  /cleanup:
+    post:
+      consumes:
+      - application/json
+      description: Queue a cleanup operation for specified resources
+      parameters:
+      - description: Cleanup request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.ExecuteCleanupRequest'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            $ref: '#/definitions/handler.ExecuteCleanupResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: Execute cleanup
+      tags:
+      - Cleanup
+  /cleanup/preview:
+    post:
+      consumes:
+      - application/json
+      description: Preview what resources would be affected by a cleanup operation
+      parameters:
+      - description: Cleanup preview request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.ExecuteCleanupRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.CleanupPreviewDTO'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: Preview cleanup
+      tags:
+      - Cleanup
+  /dashboard/carbon:
+    get:
+      consumes:
+      - application/json
+      description: Get carbon footprint breakdown by provider and region
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.CarbonResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: Carbon footprint breakdown
+      tags:
+      - Dashboard
+  /dashboard/savings:
+    get:
+      consumes:
+      - application/json
+      description: Get potential savings breakdown by provider and resource type
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.SavingsResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: Savings breakdown
+      tags:
+      - Dashboard
+  /dashboard/summary:
+    get:
+      consumes:
+      - application/json
+      description: Get dashboard summary statistics including total resources, unused
+        resources, costs and carbon footprint
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              $ref: '#/definitions/handler.SummaryStats'
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: Dashboard summary
+      tags:
+      - Dashboard
+  /health:
+    get:
+      consumes:
+      - application/json
+      description: Basic health check endpoint
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.HealthResponse'
+      summary: Health check
+      tags:
+      - Health
+  /policies:
+    get:
+      consumes:
+      - application/json
+      description: Get a paginated list of cleanup policies
+      parameters:
+      - description: Filter by cloud provider
+        enum:
+        - aws
+        - azure
+        - gcp
+        in: query
+        name: provider
+        type: string
+      - description: Filter by enabled status
+        in: query
+        name: is_enabled
+        type: boolean
+      - default: 20
+        description: Number of items per page
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of items to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/handler.PaginatedResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/handler.PolicyDTO'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: List policies
+      tags:
+      - Policies
+    post:
+      consumes:
+      - application/json
+      description: Create a new cleanup policy
+      parameters:
+      - description: Policy request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.CreatePolicyRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties:
+              $ref: '#/definitions/handler.PolicyDTO'
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: Create policy
+      tags:
+      - Policies
+  /policies/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a policy
+      parameters:
+      - description: Policy ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: Delete policy
+      tags:
+      - Policies
+    get:
+      consumes:
+      - application/json
+      description: Get a single policy by its ID
+      parameters:
+      - description: Policy ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              $ref: '#/definitions/handler.PolicyDTO'
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: Get policy by ID
+      tags:
+      - Policies
+    put:
+      consumes:
+      - application/json
+      description: Update an existing policy
+      parameters:
+      - description: Policy ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Policy update request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.CreatePolicyRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              $ref: '#/definitions/handler.PolicyDTO'
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: Update policy
+      tags:
+      - Policies
+  /policies/{id}/disable:
+    post:
+      consumes:
+      - application/json
+      description: Disable a policy
+      parameters:
+      - description: Policy ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: Disable policy
+      tags:
+      - Policies
+  /policies/{id}/enable:
+    post:
+      consumes:
+      - application/json
+      description: Enable a policy
+      parameters:
+      - description: Policy ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: Enable policy
+      tags:
+      - Policies
+  /ready:
+    get:
+      consumes:
+      - application/json
+      description: Readiness check with dependency verification
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.ReadyResponse'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: Readiness check
+      tags:
+      - Health
+  /resources:
+    get:
+      consumes:
+      - application/json
+      description: Get a paginated list of cloud resources with optional filters
+      parameters:
+      - description: Filter by cloud provider
+        enum:
+        - aws
+        - azure
+        - gcp
+        in: query
+        name: provider
+        type: string
+      - description: Filter by resource type
+        in: query
+        name: type
+        type: string
+      - description: Filter by status
+        enum:
+        - active
+        - unused
+        - deleted
+        - excluded
+        in: query
+        name: status
+        type: string
+      - description: Filter by region
+        in: query
+        name: region
+        type: string
+      - default: 50
+        description: Number of items per page
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of items to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/handler.PaginatedResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/handler.ResourceDTO'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: List resources
+      tags:
+      - Resources
+  /resources/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Mark a resource as deleted
+      parameters:
+      - description: Resource ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: Delete resource
+      tags:
+      - Resources
+    get:
+      consumes:
+      - application/json
+      description: Get a single cloud resource by its ID
+      parameters:
+      - description: Resource ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              $ref: '#/definitions/handler.ResourceDTO'
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: Get resource by ID
+      tags:
+      - Resources
+  /scans:
+    get:
+      consumes:
+      - application/json
+      description: Get a paginated list of scans with optional filters
+      parameters:
+      - description: Filter by cloud provider
+        enum:
+        - aws
+        - azure
+        - gcp
+        in: query
+        name: provider
+        type: string
+      - description: Filter by status
+        enum:
+        - pending
+        - running
+        - completed
+        - failed
+        - cancelled
+        in: query
+        name: status
+        type: string
+      - default: 20
+        description: Number of items per page
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of items to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/handler.PaginatedResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/handler.ScanDTO'
+                  type: array
+              type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: List scans
+      tags:
+      - Scans
+    post:
+      consumes:
+      - application/json
+      description: Create a new cloud resource scan and queue it for processing
+      parameters:
+      - description: Scan request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.CreateScanRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/handler.CreateScanResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: Create a new scan
+      tags:
+      - Scans
+  /scans/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get a single scan by its ID
+      parameters:
+      - description: Scan ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              $ref: '#/definitions/handler.ScanDTO'
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: Get scan by ID
+      tags:
+      - Scans
+securityDefinitions:
+  BearerAuth:
+    description: Bearer token authentication
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

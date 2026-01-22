@@ -28,24 +28,42 @@ func NewCleanupHandler(db *gorm.DB, queueClient *asynq.Client) *CleanupHandler {
 
 // ExecuteCleanupRequest represents a request to execute cleanup
 type ExecuteCleanupRequest struct {
-	OrganizationID string   `json:"organization_id" binding:"required"`
-	ResourceIDs    []string `json:"resource_ids" binding:"required,min=1"`
-	Action         string   `json:"action" binding:"required,oneof=delete stop tag notify"`
-	DryRun         bool     `json:"dry_run"`
+	OrganizationID string   `json:"organization_id" binding:"required" example:"550e8400-e29b-41d4-a716-446655440000"`
+	ResourceIDs    []string `json:"resource_ids" binding:"required,min=1" example:"550e8400-e29b-41d4-a716-446655440001,550e8400-e29b-41d4-a716-446655440002"`
+	Action         string   `json:"action" binding:"required,oneof=delete stop tag notify" example:"delete"`
+	DryRun         bool     `json:"dry_run" example:"false"`
 }
 
-// Execute executes a cleanup operation
+// ExecuteCleanupResponse represents the response after queueing cleanup
+type ExecuteCleanupResponse struct {
+	Message string `json:"message" example:"cleanup task queued"`
+	TaskID  string `json:"task_id" example:"task_12345"`
+	DryRun  bool   `json:"dry_run" example:"false"`
+}
+
+// Execute godoc
+//
+//	@Summary		Execute cleanup
+//	@Description	Queue a cleanup operation for specified resources
+//	@Tags			Cleanup
+//	@Accept			json
+//	@Produce		json
+//	@Param			request	body		ExecuteCleanupRequest	true	"Cleanup request"
+//	@Success		202		{object}	ExecuteCleanupResponse
+//	@Failure		400		{object}	ErrorResponse
+//	@Failure		500		{object}	ErrorResponse
+//	@Router			/cleanup [post]
 func (h *CleanupHandler) Execute(c *gin.Context) {
 	var req ExecuteCleanupRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
 		return
 	}
 
 	// Validate resource IDs
 	for _, id := range req.ResourceIDs {
 		if _, err := uuid.Parse(id); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid resource ID: " + id})
+			c.JSON(http.StatusBadRequest, ErrorResponse{Error: "invalid resource ID: " + id})
 			return
 		}
 	}
@@ -61,22 +79,33 @@ func (h *CleanupHandler) Execute(c *gin.Context) {
 	task := asynq.NewTask(queue.TaskTypeCleanupResources, payload)
 	info, err := h.queueClient.Enqueue(task)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to enqueue cleanup task"})
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "failed to enqueue cleanup task"})
 		return
 	}
 
-	c.JSON(http.StatusAccepted, gin.H{
-		"message": "cleanup task queued",
-		"task_id": info.ID,
-		"dry_run": req.DryRun,
+	c.JSON(http.StatusAccepted, ExecuteCleanupResponse{
+		Message: "cleanup task queued",
+		TaskID:  info.ID,
+		DryRun:  req.DryRun,
 	})
 }
 
-// Preview returns a preview of what would be cleaned up
+// Preview godoc
+//
+//	@Summary		Preview cleanup
+//	@Description	Preview what resources would be affected by a cleanup operation
+//	@Tags			Cleanup
+//	@Accept			json
+//	@Produce		json
+//	@Param			request	body		ExecuteCleanupRequest	true	"Cleanup preview request"
+//	@Success		200		{object}	CleanupPreviewDTO
+//	@Failure		400		{object}	ErrorResponse
+//	@Failure		500		{object}	ErrorResponse
+//	@Router			/cleanup/preview [post]
 func (h *CleanupHandler) Preview(c *gin.Context) {
 	var req ExecuteCleanupRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
 		return
 	}
 
@@ -85,7 +114,7 @@ func (h *CleanupHandler) Preview(c *gin.Context) {
 	for _, id := range req.ResourceIDs {
 		u, err := uuid.Parse(id)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid resource ID: " + id})
+			c.JSON(http.StatusBadRequest, ErrorResponse{Error: "invalid resource ID: " + id})
 			return
 		}
 		uuids = append(uuids, u)
@@ -94,7 +123,7 @@ func (h *CleanupHandler) Preview(c *gin.Context) {
 	// Fetch resources
 	var resources []model.Resource
 	if err := h.db.Where("id IN ?", uuids).Find(&resources).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch resources"})
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "failed to fetch resources"})
 		return
 	}
 
@@ -106,10 +135,10 @@ func (h *CleanupHandler) Preview(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"resources":              resources,
-		"count":                  len(resources),
+		"resources":                 resources,
+		"count":                     len(resources),
 		"estimated_monthly_savings": totalCost,
 		"estimated_carbon_savings":  totalCarbon,
-		"action":                 req.Action,
+		"action":                    req.Action,
 	})
 }
