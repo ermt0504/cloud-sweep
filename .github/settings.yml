@@ -1,0 +1,15 @@
+# Repository settings for cloud-sweep
+# These topics should be configured in the GitHub repository settings
+
+repository:
+  topics:
+    - finops
+    - greenops
+    - cloud-computing
+    - nestjs
+    - react
+    - aws
+    - azure
+    - gcp
+    - sustainability
+    - devsecops
